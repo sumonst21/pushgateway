@@ -35,9 +35,9 @@ type MetricStore interface {
 	// so the caller is not allowed to modify the returned MetricFamilies.
 	// If different groups have saved MetricFamilies of the same name, they
 	// are all merged into one MetricFamily by concatenating the contained
-	// Metrics. Inconsistent help strings or types are logged, and one of
-	// the versions will "win". Inconsistent and duplicate label sets will
-	// go undetected.
+	// Metrics. Inconsistent help strings are logged, and one of the
+	// versions will "win". Inconsistent types and inconsistent or duplicate
+	// label sets will go undetected.
 	GetMetricFamilies() []*dto.MetricFamily
 	// GetMetricFamiliesMap returns a map grouping-key -> MetricGroup. The
 	// MetricFamily pointed to by the Metrics map in each MetricGroup is
@@ -70,16 +70,23 @@ type MetricStore interface {
 // WriteRequest is a request to change the MetricStore, i.e. to process it, a
 // write lock has to be acquired. If MetricFamilies is nil, this is a request to
 // delete metrics that share the given Labels as a grouping key. Otherwise, this
-// is a request to update the MetricStore with the MetricFamilies. The key in
-// MetricFamilies is the name of the mapped metric family. All metrics in
-// MetricFamilies MUST have already set job and other labels that are consistent
-// with the Labels fields. The Timestamp field marks the time the request was
-// received from the network. It is not related to the timestamp_ms field in the
-// Metric proto message.
+// is a request to update the MetricStore with the MetricFamilies. If Replace is
+// true, the MetricFamilies will completely replace the metrics with the same
+// grouping key. Otherwise, only those MetricFamilies whith the same name as new
+// MetricFamilies will be replaced. The key in MetricFamilies is the name of the
+// mapped metric family. All metrics in MetricFamilies MUST have already set job
+// and other labels that are consistent with the Labels fields. The Timestamp
+// field marks the time the request was received from the network. It is not
+// related to the timestamp_ms field in the Metric proto message. The Done
+// channel may be nil. If it is not nil, it will be closed once the write
+// request is processed. Any errors occuring during processing are sent to the
+// channel before closing it.
 type WriteRequest struct {
 	Labels         map[string]string
 	Timestamp      time.Time
 	MetricFamilies map[string]*dto.MetricFamily
+	Replace        bool
+	Done           chan error
 }
 
 // GroupingKeyToMetricGroup is the first level of the metric store, keyed by

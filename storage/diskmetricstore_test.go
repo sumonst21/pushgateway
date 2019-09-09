@@ -810,7 +810,7 @@ func TestHelpStringFix(t *testing.T) {
 	})
 	time.Sleep(20 * time.Millisecond) // Give loop() time to process.
 
-	// Either we have settle on the mfh1 help string or the mfh2 help string.
+	// Either we have settled on the mfh1 help string or the mfh2 help string.
 	gotMFs := dms.GetMetricFamilies()
 	if len(gotMFs) != 2 {
 		t.Fatalf("expected 2 metric families, got %d", len(gotMFs))

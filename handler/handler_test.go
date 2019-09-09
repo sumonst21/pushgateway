@@ -40,6 +40,9 @@ type MockMetricStore struct {
 func (m *MockMetricStore) SubmitWriteRequest(req storage.WriteRequest) {
 	m.writeRequests = append(m.writeRequests, req)
 	m.lastWriteRequest = req
+	if req.Done != nil {
+		close(req.Done)
+	}
 }
 
 func (m *MockMetricStore) GetMetricFamilies() []*dto.MetricFamily {
@@ -107,7 +110,7 @@ func TestPush(t *testing.T) {
 	mms.lastWriteRequest = storage.WriteRequest{}
 	w = httptest.NewRecorder()
 	handler(w, req, httprouter.Params{httprouter.Param{Key: "job", Value: "testjob"}})
-	if expected, got := http.StatusAccepted, w.Code; expected != got {
+	if expected, got := http.StatusOK, w.Code; expected != got {
 		t.Errorf("Wanted status code %v, got %v.", expected, got)
 	}
 	if mms.lastWriteRequest.Timestamp.IsZero() {
@@ -161,7 +164,7 @@ func TestPush(t *testing.T) {
 			httprouter.Param{Key: "labels", Value: "/instance/testinstance"},
 		},
 	)
-	if expected, got := http.StatusAccepted, w.Code; expected != got {
+	if expected, got := http.StatusOK, w.Code; expected != got {
 		t.Errorf("Wanted status code %v, got %v.", expected, got)
 	}
 	if mms.lastWriteRequest.Timestamp.IsZero() {
@@ -200,7 +203,7 @@ func TestPush(t *testing.T) {
 			httprouter.Param{Key: "labels", Value: "/instance@base64/dGVzdGluc3RhbmNl"}, // instance="testinstance"
 		},
 	)
-	if expected, got := http.StatusAccepted, w.Code; expected != got {
+	if expected, got := http.StatusOK, w.Code; expected != got {
 		t.Errorf("Wanted status code %v, got %v.", expected, got)
 	}
 	if mms.lastWriteRequest.Timestamp.IsZero() {
@@ -238,7 +241,7 @@ func TestPush(t *testing.T) {
 			httprouter.Param{Key: "job", Value: "testjob"},
 		},
 	)
-	if expected, got := http.StatusAccepted, w.Code; expected != got {
+	if expected, got := http.StatusOK, w.Code; expected != got {
 		t.Errorf("Wanted status code %v, got %v.", expected, got)
 	}
 	if mms.lastWriteRequest.Timestamp.IsZero() {
@@ -301,7 +304,7 @@ another_metric{instance="baz"} 42
 			httprouter.Param{Key: "labels", Value: "/instance/testinstance"},
 		},
 	)
-	if expected, got := http.StatusAccepted, w.Code; expected != got {
+	if expected, got := http.StatusOK, w.Code; expected != got {
 		t.Errorf("Wanted status code %v, got %v.", expected, got)
 	}
 	if mms.lastWriteRequest.Timestamp.IsZero() {
@@ -368,7 +371,7 @@ another_metric{instance="baz"} 42
 			httprouter.Param{Key: "labels", Value: "/instance/testinstance"},
 		},
 	)
-	if expected, got := http.StatusAccepted, w.Code; expected != got {
+	if expected, got := http.StatusOK, w.Code; expected != got {
 		t.Errorf("Wanted status code %v, got %v.", expected, got)
 	}
 	if mms.lastWriteRequest.Timestamp.IsZero() {
